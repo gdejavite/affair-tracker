@@ -115,20 +115,21 @@ export const AddContactModal = ({ isOpen, onClose, onAdd }: AddContactModalProps
               <div>
                 <label className="text-sm text-muted-foreground mb-3 block">Escolha uma foto</label>
                 <div className="flex gap-3 overflow-x-auto pb-2">
-                  {/* Upload button */}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="relative flex-shrink-0 w-16 h-16 rounded-full overflow-hidden ring-2 ring-dashed ring-primary/50 bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+                  {/* Upload button - using label for better mobile support */}
+                  <label
+                    htmlFor="photo-upload"
+                    className="relative flex-shrink-0 w-16 h-16 rounded-full overflow-hidden ring-2 ring-dashed ring-primary/50 bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors cursor-pointer"
                   >
                     <ImagePlus className="w-6 h-6 text-primary" />
-                  </button>
+                  </label>
                   <input
+                    id="photo-upload"
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    capture="environment"
                     onChange={handleFileChange}
-                    className="hidden"
+                    className="sr-only"
                   />
 
                   {/* Custom uploaded photo */}
