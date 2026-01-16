@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera } from 'lucide-react';
+import { X, Camera, Upload, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Woman } from '@/types';
+import { toast } from 'sonner';
 
 interface AddContactModalProps {
   isOpen: boolean;
@@ -25,10 +26,40 @@ export const AddContactModal = ({ isOpen, onClose, onAdd }: AddContactModalProps
   const [nickname, setNickname] = useState('');
   const [phone, setPhone] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState(avatars[0]);
+  const [customPhoto, setCustomPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione uma imagem válida');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setCustomPhoto(result);
+      setSelectedPhoto(result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast.error('Informe o nome');
+      return;
+    }
     
     onAdd({
       name: name.trim(),
@@ -37,10 +68,21 @@ export const AddContactModal = ({ isOpen, onClose, onAdd }: AddContactModalProps
       photo: selectedPhoto,
     });
     
+    toast.success('Conquista adicionada!');
     setName('');
     setNickname('');
     setPhone('');
     setSelectedPhoto(avatars[0]);
+    setCustomPhoto(null);
+    onClose();
+  };
+
+  const handleClose = () => {
+    setName('');
+    setNickname('');
+    setPhone('');
+    setSelectedPhoto(avatars[0]);
+    setCustomPhoto(null);
     onClose();
   };
 
@@ -52,7 +94,7 @@ export const AddContactModal = ({ isOpen, onClose, onAdd }: AddContactModalProps
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-end justify-center"
-          onClick={onClose}
+          onClick={handleClose}
         >
           <motion.div
             initial={{ y: '100%' }}
@@ -64,7 +106,7 @@ export const AddContactModal = ({ isOpen, onClose, onAdd }: AddContactModalProps
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-foreground">Nova Conquista</h2>
-              <button onClick={onClose} className="p-2 hover:bg-muted rounded-full">
+              <button onClick={handleClose} className="p-2 hover:bg-muted rounded-full">
                 <X className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
@@ -73,6 +115,39 @@ export const AddContactModal = ({ isOpen, onClose, onAdd }: AddContactModalProps
               <div>
                 <label className="text-sm text-muted-foreground mb-3 block">Escolha uma foto</label>
                 <div className="flex gap-3 overflow-x-auto pb-2">
+                  {/* Upload button */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative flex-shrink-0 w-16 h-16 rounded-full overflow-hidden ring-2 ring-dashed ring-primary/50 bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+                  >
+                    <ImagePlus className="w-6 h-6 text-primary" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+
+                  {/* Custom uploaded photo */}
+                  {customPhoto && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPhoto(customPhoto)}
+                      className={`relative flex-shrink-0 w-16 h-16 rounded-full overflow-hidden ring-2 transition-all ${
+                        selectedPhoto === customPhoto ? 'ring-primary scale-110' : 'ring-border'
+                      }`}
+                    >
+                      <img src={customPhoto} alt="Foto personalizada" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                        <Camera className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Preset avatars */}
                   {avatars.map((avatar) => (
                     <button
                       key={avatar}
@@ -90,7 +165,7 @@ export const AddContactModal = ({ isOpen, onClose, onAdd }: AddContactModalProps
 
               <div className="space-y-4">
                 <Input
-                  placeholder="Nome"
+                  placeholder="Nome *"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="bg-muted border-0 h-12"
