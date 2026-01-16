@@ -4,6 +4,7 @@ import { X, MapPin, DollarSign, Calendar, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Woman, DateEntry } from '@/types';
+import { toast } from 'sonner';
 
 interface AddDateModalProps {
   isOpen: boolean;
@@ -18,10 +19,29 @@ export const AddDateModal = ({ isOpen, onClose, onAdd, women }: AddDateModalProp
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [rating, setRating] = useState(0);
+  const [errors, setErrors] = useState<{ woman?: boolean; location?: boolean }>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedWoman || !location.trim()) return;
+    
+    const newErrors: { woman?: boolean; location?: boolean } = {};
+    
+    if (!selectedWoman) {
+      newErrors.woman = true;
+    }
+    if (!location.trim()) {
+      newErrors.location = true;
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error('Preencha os campos obrigatórios', {
+        description: !selectedWoman ? 'Selecione uma conquista' : 'Informe o local do encontro',
+      });
+      return;
+    }
+    
+    setErrors({});
     
     onAdd({
       womanId: selectedWoman,
@@ -30,6 +50,8 @@ export const AddDateModal = ({ isOpen, onClose, onAdd, women }: AddDateModalProp
       date: new Date(date),
       rating: rating > 0 ? rating : undefined,
     });
+    
+    toast.success('Encontro registrado!');
     
     setSelectedWoman('');
     setLocation('');
@@ -66,13 +88,18 @@ export const AddDateModal = ({ isOpen, onClose, onAdd, women }: AddDateModalProp
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="text-sm text-muted-foreground mb-3 block">Com quem?</label>
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <label className={`text-sm mb-3 block ${errors.woman ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  Com quem? {errors.woman && <span className="text-destructive">*</span>}
+                </label>
+                <div className={`flex gap-3 overflow-x-auto pb-2 ${errors.woman ? 'ring-2 ring-destructive/50 rounded-xl p-1' : ''}`}>
                   {women.map((woman) => (
                     <button
                       key={woman.id}
                       type="button"
-                      onClick={() => setSelectedWoman(woman.id)}
+                      onClick={() => {
+                        setSelectedWoman(woman.id);
+                        setErrors(prev => ({ ...prev, woman: false }));
+                      }}
                       className={`relative flex-shrink-0 flex flex-col items-center gap-1 p-2 rounded-xl transition-all ${
                         selectedWoman === woman.id ? 'bg-primary/20 ring-2 ring-primary' : 'hover:bg-muted'
                       }`}
@@ -96,12 +123,15 @@ export const AddDateModal = ({ isOpen, onClose, onAdd, women }: AddDateModalProp
                 </div>
                 
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <MapPin className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${errors.location ? 'text-destructive' : 'text-muted-foreground'}`} />
                   <Input
-                    placeholder="Local do encontro"
+                    placeholder="Local do encontro *"
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="bg-muted border-0 h-12 pl-11"
+                    onChange={(e) => {
+                      setLocation(e.target.value);
+                      setErrors(prev => ({ ...prev, location: false }));
+                    }}
+                    className={`bg-muted border-0 h-12 pl-11 ${errors.location ? 'ring-2 ring-destructive/50' : ''}`}
                   />
                 </div>
                 
